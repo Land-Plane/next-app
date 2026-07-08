@@ -1,65 +1,111 @@
-import Image from "next/image";
+"use client"
+
+import { useState, useEffect } from "react"
+import Header from "./components/Header"
+import TodoInput from "./components/TodoInput"
+
+interface Todo {
+  id: number
+  text: string
+  done: boolean
+}
 
 export default function Home() {
+  const now = new Date()
+  const hour = now.getHours()
+  const greeting = hour < 12 ? "早上好" : hour < 18 ? "下午好" : "晚上好"
+
+  const [todos, setTodos] = useState<Todo[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("todos")
+      if (saved) return JSON.parse(saved)
+    }
+    return [
+      { id: 1, text: "学习 React 基础知识", done: false },
+      { id: 2, text: "完成 Counter 练习", done: false },
+      { id: 3, text: "理解条件和列表渲染", done: false },
+    ]
+  })
+
+  const [filter, setFilter] = useState("all")
+
+  useEffect(() => {
+    localStorage.setItem("todos", JSON.stringify(todos))
+  }, [todos])
+
+  const addTodo = (text: string) => {
+    setTodos([...todos, { id: Date.now(), text, done: false }])
+  }
+
+  const deleteTodo = (id: number) => {
+    setTodos(todos.filter(todo => todo.id !== id))
+  }
+
+  const toggleTodo = (id: number) => {
+    setTodos(todos.map(todo =>
+      todo.id === id ? { ...todo, done: !todo.done } : todo
+    ))
+  }
+
+  const filteredTodos = todos.filter(todo => {
+    if (filter === "active") return !todo.done
+    if (filter === "completed") return todo.done
+    return true
+  })
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="max-w-md mx-auto p-5">
+      <Header greeting={greeting} timeStr={now.toLocaleString("zh-CN")} />
+      <hr className="my-8" />
+      <TodoInput onAdd={addTodo} />
+      <p className="text-center text-gray-600 text-sm">
+        剩余 {todos.filter(t => !t.done).length} 项未完成
+      </p>
+      <h2 className="text-center text-gray-800">我的任务清单</h2>
+      <div className="text-center mb-4">
+        {["all", "active", "completed"].map(f => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`px-4 py-2.5 text-base cursor-pointer border-none rounded-md mr-2.5 ${
+              filter === f ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"
+            }`}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            {f === "all" ? "全部" : f === "active" ? "未完成" : "已完成"}
+          </button>
+        ))}
+      </div>
+
+      <ul className="list-none p-0">
+        {filteredTodos.map(todo => (
+          <li
+            key={todo.id}
+            onClick={() => toggleTodo(todo.id)}
+            className="flex justify-between items-center p-2.5 mb-2.5 border rounded-md cursor-pointer"
           >
-            Documentation
-          </a>
+            <span className={todo.done ? "line-through text-gray-500" : ""}>
+              {todo.text}
+            </span>
+            <button
+              onClick={(e) => { e.stopPropagation(); deleteTodo(todo.id) }}
+              className="px-3 py-1.5 text-sm cursor-pointer bg-red-500 text-white border-none rounded-md"
+            >
+              删除
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      {todos.some(t => t.done) && (
+        <div className="text-center mt-3">
+          <button
+            onClick={() => setTodos(todos.filter(t => !t.done))}
+            className="px-5 py-2.5 text-base cursor-pointer bg-gray-500 text-white border-none rounded-md"
+          >
+            清除已完成
+          </button>
         </div>
-      </main>
+      )}
     </div>
-  );
+  )
 }
