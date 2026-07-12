@@ -1,4 +1,6 @@
 // app/users/page.tsx
+import Link from "next/link"
+
 interface GitHubUser {
   id: number
   login: string
@@ -20,10 +22,9 @@ export default async function UsersPage() {
       <h1 className="text-2xl font-bold text-center mb-6">GitHub 用户列表</h1>
       <div className="grid gap-4">
         {users.map(user => (
-          <a
+          <Link
             key={user.id}
-            href={user.html_url}
-            target="_blank"
+            href={`/users/${user.login}`}
             className="flex items-center gap-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors"
           >
             <img
@@ -35,7 +36,7 @@ export default async function UsersPage() {
               <p className="font-medium text-gray-800">{user.login}</p>
               <p className="text-sm text-gray-500">GitHub ID: {user.id}</p>
             </div>
-          </a>
+          </Link>
         ))}
       </div>
     </div>
